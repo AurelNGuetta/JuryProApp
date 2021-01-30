@@ -1,0 +1,4 @@
+#Wed Jan 27 18:01:00 GMT 2021
+base.0=/Users/oda03/Desktop/Mobile/learn_flutter/build/app/intermediates/dex/debug/mergeDexDebug/out/classes.dex
+path.0=classes.dex
+renamed.0=classes.dex
