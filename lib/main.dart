@@ -12,10 +12,14 @@ import 'package:flutter/services.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:learn_flutter/evenementDetail.dart';
+import 'package:learn_flutter/groupe/groupeEvenementDetail.dart';
+import 'package:learn_flutter/jury/connectJury.dart';
+import 'package:learn_flutter/splash.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
 import 'addEvent.dart';
+import 'constant/constant.dart';
 
 void main() {
   runApp(MyApp());
@@ -43,7 +47,7 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Jury Pro'),
+      home: Splash(),
     );
   }
 }
@@ -81,7 +85,7 @@ class _MyHomePageState extends State<MyHomePage>
     Icons.group,
     Icons.supervised_user_circle_rounded,
   ];
-  final menuList = <String>["Evènements", "Candidat", "Groupe", "Jury"];
+  final menuList = <String>["Evènements", "Candidat", "Résultats", "Votes"];
 
   List data;
   List evenements;
@@ -91,7 +95,7 @@ class _MyHomePageState extends State<MyHomePage>
     setState(() {
       _isLoading = true;
     });
-    final response = await http.get("http://172.31.240.145:8080/evenements");
+    final response = await http.get("${Constant.ip}/evenements");
 
     if (response.statusCode == 200) {
       setState(() {
@@ -147,48 +151,48 @@ class _MyHomePageState extends State<MyHomePage>
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(padding: EdgeInsets.zero, children: <Widget>[
-          DrawerHeader(
-            child: Text(
-              'Menu Jury Pro',
-              style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
-            ),
-            decoration: BoxDecoration(
-                shape: BoxShape.rectangle,
-                gradient: FlutterGradient.angelCare()),
-          ),
-          ListTile(
-            leading: Icon(Icons.event),
-            title:
-                Text('Evenements', style: TextStyle(color: Colors.deepOrange)),
-            onTap: () {
-              // Update the state of the app.
-              // ...
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.person_rounded),
-            title:
-                Text('Candidats', style: TextStyle(color: Colors.deepOrange)),
-            onTap: () {
-              // Update the state of the app.
-              // ...
-            },
-          ),
-          ListTile(
-            leading: Icon(Icons.supervised_user_circle),
-            title: Text('Groupes', style: TextStyle(color: Colors.deepOrange)),
-            onTap: () {
-              // Update the state of the app.
-              // ...
-            },
-          ),
-        ]),
-      ),
+      // drawer: Drawer(
+      //   child: ListView(padding: EdgeInsets.zero, children: <Widget>[
+      //     DrawerHeader(
+      //       child: Text(
+      //         'Menu Jury Pro',
+      //         style: TextStyle(
+      //             fontSize: 25,
+      //             fontWeight: FontWeight.bold,
+      //             color: Colors.white),
+      //       ),
+      //       decoration: BoxDecoration(
+      //           shape: BoxShape.rectangle,
+      //           gradient: FlutterGradient.angelCare()),
+      //     ),
+      //     ListTile(
+      //       leading: Icon(Icons.event),
+      //       title:
+      //           Text('Evenements', style: TextStyle(color: Colors.deepOrange)),
+      //       onTap: () {
+      //         // Update the state of the app.
+      //         // ...
+      //       },
+      //     ),
+      //     ListTile(
+      //       leading: Icon(Icons.person_rounded),
+      //       title:
+      //           Text('Candidats', style: TextStyle(color: Colors.deepOrange)),
+      //       onTap: () {
+      //         // Update the state of the app.
+      //         // ...
+      //       },
+      //     ),
+      //     ListTile(
+      //       leading: Icon(Icons.supervised_user_circle),
+      //       title: Text('Groupes', style: TextStyle(color: Colors.deepOrange)),
+      //       onTap: () {
+      //         // Update the state of the app.
+      //         // ...
+      //       },
+      //     ),
+      //   ]),
+      // ),
       appBar: AppBar(
           // Here we take the value from the MyHomePage object that was created by
           // the App.build method, and use it to set our appbar title.
@@ -234,7 +238,7 @@ class _MyHomePageState extends State<MyHomePage>
                         : 'inscrit');
                     return Card(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       color: Colors.white,
                       child: Padding(
@@ -242,18 +246,18 @@ class _MyHomePageState extends State<MyHomePage>
                         child: Column(
                           children: <Widget>[
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(10),
                               child: (data[index]['evenement_photo'] != null)
                                   ? Image.memory(image)
                                   : Image.network(
                                       "https://images.pexels.com/photos/1805895/pexels-photo-1805895.jpeg?cs=srgb&dl=pexels-wendy-wei-1805895.jpg&fm=jpg"),
                             ),
-                            Container(height: 15),
+                            Container(height: 10),
                             Align(
                               alignment: Alignment.centerLeft,
                               child: Text("${data[index]["evenement_nom"]}",
                                   style: TextStyle(
-                                      fontSize: 23,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF29137C))),
                             ),
@@ -285,7 +289,9 @@ class _MyHomePageState extends State<MyHomePage>
                                   child: Text("Infos"),
                                   color: Color(0xFFF4F2FF),
                                   onPressed: () {
-                                    Navigator.of(context).push(_createRoute(data[index]["evenement_id"]));
+                                    Navigator.of(context).push(_createRoute(
+                                        data[index]["evenement_id"],
+                                        data[index]["evenement_type"]));
                                   },
                                 )
                               ],
@@ -353,14 +359,45 @@ class _MyHomePageState extends State<MyHomePage>
         gapLocation: GapLocation.center,
         leftCornerRadius: 32,
         rightCornerRadius: 32,
-        onTap: (index) => setState(() => _bottomNavIndex = index),
+        onTap: (index) {
+          setState(() => _bottomNavIndex = index);
+          if (index == 3) {
+            Navigator.of(context).push(_connectJury());
+          }
+        },
       ),
     );
   }
 }
-Route _createRoute(int evenement) {
+
+// final menu = <String>["Evènements", "Candidat", "Résultats", "votes"];
+Route _createRoute(int evenement, String evenement_type) {
   return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => EvenementDetailPage(evenement: evenement),
+    pageBuilder: (context, animation, secondaryAnimation) {
+      if (evenement_type == "GROUPE") {
+        return GroupeEvenementDetailPage(evenement: evenement);
+      } else {
+        return EvenementDetailPage(evenement: evenement);
+      }
+    },
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      var begin = Offset(0.0, 1.0);
+      var end = Offset.zero;
+      var curve = Curves.ease;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+      return SlideTransition(
+        position: animation.drive(tween),
+        child: child,
+      );
+    },
+  );
+}
+
+Route _connectJury() {
+  return PageRouteBuilder(
+    pageBuilder: (context, animation, secondaryAnimation) => ConnectJuryPage(),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       var begin = Offset(0.0, 1.0);
       var end = Offset.zero;

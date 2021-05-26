@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:custom_dropdown/custom_dropdown.dart';
@@ -13,32 +14,51 @@ import 'package:rflutter_alert/rflutter_alert.dart';
 import 'constant/constant.dart';
 
 Future<Evenement> createEvenement(
-    String evenementNom,
-    String evenementType,
-    String evenementPhoto,
-    String evenementDescription,
-    String evenementDateDebut,
-    String evenementDateFin) async {
+    String evenement_nom,
+    String evenement_type,
+    String evenement_photo,
+    String evenement_description,
+    String evenement_date_debut,
+    String evenement_date_fin) async {
   final http.Response response = await http.post(
     '${Constant.ip}/evenements',
     headers: {
       'Content-Type': 'application/json; charset=UTF-8',
     },
     body: jsonEncode({
-      'evenement_nom': evenementNom,
-      'evenement_type': evenementType,
-      'evenement_photo': evenementPhoto,
-      'evenement_description': evenementDescription,
-      'evenement_date_debut': evenementDateDebut,
-      'evenement_date_fin': evenementDateFin
+      'evenement_nom': evenement_nom,
+      'evenement_type': evenement_type,
+      'evenement_photo': evenement_photo,
+      'evenement_description': evenement_description,
+      'evenement_date_debut': evenement_date_debut,
+      'evenement_date_fin': evenement_date_fin
     }),
   );
 
   if (response.statusCode == 200) {
     return Evenement.fromJson(jsonDecode(response.body));
   } else {
-    throw Exception('Echec de la création de l\'evenement');
+    throw Exception('Echec de la modification de l\'evenement');
   }
+}
+
+_onCustomAnimationAlertPressed(context) {
+  Alert(
+    context: context,
+    title: "RFLUTTER ALERT",
+    desc: "Flutter is more awesome with RFlutter Alert.",
+    alertAnimation: FadeAlertAnimation,
+  ).show();
+}
+
+Widget FadeAlertAnimation(BuildContext context, Animation<double> animation,
+    Animation<double> secondaryAnimation, Widget child) {
+  return Align(
+    child: FadeTransition(
+      opacity: animation,
+      child: child,
+    ),
+  );
 }
 
 class Evenement {
@@ -69,14 +89,40 @@ class Evenement {
   }
 }
 
-class AddEvenementPage extends StatefulWidget {
-  AddEvenementPage({Key key}) : super(key: key);
+class UpdateEvenementPage extends StatefulWidget {
+  Evenement evenement;
+  final int id;
+  final String name, type, description, dateDebut, dateFin, image;
+  UpdateEvenementPage(
+      Key key,
+      @required int this.id,
+      @required String this.name,
+      @required String this.type,
+      @required String this.description,
+      @required String this.dateDebut,
+      @required String this.dateFin,
+      @required String this.image)
+      : super(key: key);
 
-  _AddEvenementPageState createState() => _AddEvenementPageState();
+  _UpdateEvenementPageState createState() => _UpdateEvenementPageState(
+      id, name, type, description, dateDebut, dateFin, image);
 }
 
-class _AddEvenementPageState extends State<AddEvenementPage> {
-  var evenement;
+class _UpdateEvenementPageState extends State<UpdateEvenementPage> {
+  Evenement evenement;
+  int id;
+  String name, type, description, dateDebut, dateFin, image;
+
+  _UpdateEvenementPageState(int id, String name, String type,
+      String description, String dateDebut, String dateFin, String image) {
+    this.id = id;
+    this.name = name;
+    this.type = type;
+    this.description = description;
+    this.image = image;
+    this.dateDebut = dateDebut;
+    this.dateFin = dateFin;
+  }
 
   File _imageFile;
   final _picker = ImagePicker();
@@ -91,16 +137,27 @@ class _AddEvenementPageState extends State<AddEvenementPage> {
   String _checkboxValue, _dateDebut, _dateFin;
   int _selected;
   bool _isUploading = false;
+  Uint8List currentImage;
   final DateFormat formatter = DateFormat('yyyy-MM-dd');
 
-  final TextEditingController _evenementNameController =
-      TextEditingController();
+  TextEditingController _evenementNameController = TextEditingController();
   // final TextEditingController _evenementTypeController = TextEditingController();
-  final TextEditingController _evenementDescribeController =
-      TextEditingController();
+  TextEditingController _evenementDescribeController = TextEditingController();
   // final TextEditingController _evenementDateDebut = TextEditingController();
   // final TextEditingController _evenementDateFin = TextEditingController();
   Future<Evenement> _futureEvenement;
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _selected = type == 'CANDIDAT' ? 0 : 1;
+    _evenementNameController.text = name;
+    _evenementDescribeController.text = description;
+    _dateDebut = dateDebut;
+    _dateFin = dateFin;
+    currentImage = Base64Codec().decode(image);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -138,16 +195,22 @@ class _AddEvenementPageState extends State<AddEvenementPage> {
                                 IconButton(
                                   icon: const Icon(Icons.photo),
                                   onPressed: () async => chooseImage(),
-                                  tooltip: 'Pick from gallery',
+                                  tooltip: 'Choisir depuis Galerie',
                                 ),
-                                showImage()
+                                (currentImage != null)
+                                    ? Flexible(
+                                        child: Image.memory(
+                                        currentImage,
+                                        fit: BoxFit.fill,
+                                      ))
+                                    : showImage()
                               ],
                             )),
                       ),
                       Container(
                         padding: EdgeInsets.all(10),
                         child: Text(
-                          "Ajouter un Evènement",
+                          "",
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 25,
@@ -193,7 +256,7 @@ class _AddEvenementPageState extends State<AddEvenementPage> {
                       CustomDropdownItem(text: "GROUPE"),
                     ],
                     onChanged: (newValue) {
-                      print(newValue);
+                      // print(newValue);
                       setState(() {
                         _selected = newValue;
                         _checkboxValue =
@@ -213,13 +276,14 @@ class _AddEvenementPageState extends State<AddEvenementPage> {
                       labelText: 'Date début',
                     ),
                     autovalidateMode: AutovalidateMode.always,
+                    initialValue: DateTime.parse(dateDebut + ' 00:00:00.000'),
                     validator: (e) => (e?.day ?? 0) == 1
                         ? 'Imposible de choisir aujourd\'hui'
                         : null,
                     onDateSelected: (DateTime value) {
                       setState(() =>
                           _dateDebut = formatter.format(value).toString());
-                      print(formatter.format(value));
+                      // print(formatter.format(value));
                     },
                   ),
                   const SizedBox(height: 5),
@@ -231,12 +295,13 @@ class _AddEvenementPageState extends State<AddEvenementPage> {
                       suffixIcon: Icon(Icons.event_note),
                       labelText: 'Date fin',
                     ),
+                    initialValue: DateTime.parse(dateFin + ' 00:00:00.000'),
                     autovalidateMode: AutovalidateMode.always,
                     validator: (e) => (e?.day ?? 0) == 1
                         ? 'Imposible de choisir aujourd\'hui'
                         : null,
                     onDateSelected: (DateTime value) {
-                      print(value);
+                      // print(value);
                       setState(
                           () => _dateFin = formatter.format(value).toString());
                     },
@@ -337,6 +402,7 @@ class _AddEvenementPageState extends State<AddEvenementPage> {
   chooseImage() {
     setState(() {
       file = ImagePicker.pickImage(source: ImageSource.gallery);
+      currentImage = null;
     });
   }
 
@@ -356,12 +422,12 @@ class _AddEvenementPageState extends State<AddEvenementPage> {
           );
         } else if (null != snapshot.error) {
           return const Text(
-            'Error Picking Image',
+            'Erreur de chargement de l\'image',
             textAlign: TextAlign.center,
           );
         } else {
           return const Text(
-            'No Image Selected',
+            "Pas d'image sélectionnée",
             textAlign: TextAlign.center,
           );
         }
